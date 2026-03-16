@@ -73,7 +73,26 @@ export default function HomeScreen() {
   useEffect(() => {
     loadDailyMeals();
     loadDailyHabits();
+    loadDailyWater();
   }, [selectedDateOffset]);
+
+  const loadDailyWater = async () => {
+    try {
+      const key = `@water_glasses_${getActiveDateString()}`;
+      const saved = await AsyncStorage.getItem(key);
+      setWaterGlasses(saved ? parseInt(saved) : 0);
+    } catch (e) { console.error(e); }
+  };
+
+  const updateWater = async (increment) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newValue = Math.max(0, waterGlasses + increment);
+    setWaterGlasses(newValue);
+    try {
+      const key = `@water_glasses_${getActiveDateString()}`;
+      await AsyncStorage.setItem(key, String(newValue));
+    } catch (e) { console.error(e); }
+  };
 
   const loadProfileTargets = async () => {
     try {
@@ -127,7 +146,10 @@ export default function HomeScreen() {
   };
 
   const handleSaveMeal = () => {
-    if (!mealForm.name || !mealForm.calories) return;
+    if (!mealForm.name || !mealForm.calories || !mealForm.protein || !mealForm.carbs || !mealForm.fats) {
+        Toast.show({ type: 'error', text1: 'Missing Fields', text2: 'Please fill all nutrition fields.' });
+        return;
+    }
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const dateStr = getActiveDateString();
     
@@ -236,7 +258,7 @@ export default function HomeScreen() {
           </LinearGradient>
           <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={styles.macroCard}>
             <Text style={styles.macroLabel}>Fats</Text>
-            <ProgressRing size={70} strokeWidth={6} progress={consumed.fats / targets.fats} color={theme.colors.fat}>
+            <ProgressRing size={70} strokeWidth={6} progress={consumed.fats / targets.fats} color={theme.colors.fats}>
                <Text style={styles.ringTextMedium}>{consumed.fats}</Text><Text style={styles.ringTextTiny}>/ {targets.fats}g</Text>
             </ProgressRing>
           </LinearGradient>
@@ -254,13 +276,13 @@ export default function HomeScreen() {
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
               <TouchableOpacity 
                 style={[styles.blackAddBtn, { marginRight: 8 }]} 
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setWaterGlasses(prev => Math.max(0, prev - 1)); }}
+                onPress={() => updateWater(-1)}
               >
                 <Minus color={theme.colors.primary} size={18} />
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.blackAddBtn} 
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setWaterGlasses(prev => prev + 1); }}
+                onPress={() => updateWater(1)}
               >
                 <Plus color={theme.colors.primary} size={18} />
               </TouchableOpacity>
@@ -274,7 +296,7 @@ export default function HomeScreen() {
             </View>
           </View>
           <Text style={styles.waterDetailsText}>
-             1 glass = {waterConfig.volume}ml (Goal: {parsedWaterGoal * parseInt(waterConfig.volume)}ml)
+             1 glass = {waterConfig.volume}ml (Goal: {parsedWaterGoal * (parseInt(waterConfig.volume) || 250)}ml)
           </Text>
         </LinearGradient>
 

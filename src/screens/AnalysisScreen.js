@@ -88,7 +88,7 @@ export default function AnalysisScreen() {
           <View style={styles.avgCard}><Text style={styles.avgValue}>{averages.calories}</Text><Text style={styles.avgLabel}>kcal</Text></View>
           <View style={styles.avgCard}><Text style={[styles.avgValue, { color: theme.colors.protein }]}>{averages.protein}g</Text><Text style={styles.avgLabel}>Protein</Text></View>
           <View style={styles.avgCard}><Text style={[styles.avgValue, { color: theme.colors.carbs }]}>{averages.carbs}g</Text><Text style={styles.avgLabel}>Carbs</Text></View>
-          <View style={styles.avgCard}><Text style={[styles.avgValue, { color: theme.colors.fat }]}>{averages.fats}g</Text><Text style={styles.avgLabel}>Fats</Text></View>
+          <View style={styles.avgCard}><Text style={[styles.avgValue, { color: theme.colors.fats }]}>{averages.fats}g</Text><Text style={styles.avgLabel}>Fats</Text></View>
         </View>
 
       </ScrollView>

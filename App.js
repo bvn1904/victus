@@ -8,6 +8,7 @@ import Toast, { BaseToast } from 'react-native-toast-message';
 
 import { theme } from './src/theme';
 import { initDB } from './src/database'; 
+import UpdateManager from './src/components/UpdateManager';
 
 import ProfileScreen from './src/screens/ProfileScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -45,6 +46,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
+      <UpdateManager />
       <NavigationContainer>
         <Tab.Navigator
           initialRouteName="Home"

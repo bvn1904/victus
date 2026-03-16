@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
@@ -86,7 +87,10 @@ export default function ProfileScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
       const data = exportAllData();
-      if (!data) throw new Error("Could not fetch data");
+      if (!data || (!data.meals?.length && !data.habits?.length)) {
+        Toast.show({ type: 'error', text1: 'Nothing to Export', text2: 'Log some meals or habits first.' });
+        return;
+      }
 
       // Convert the database objects into a beautifully formatted JSON string
       const jsonString = JSON.stringify(data, null, 2);
@@ -196,10 +200,15 @@ export default function ProfileScreen() {
 
       </ScrollView>
 
-      <Modal visible={isModalVisible} transparent={true} animationType="slide">
-        <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
-          <View style={styles.sheetContent}>
-            <View style={styles.modalHandle} />
+      <Modal visible={isModalVisible} transparent={true} animationType="fade">
+        <View style={{flex: 1}}>
+          <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill} />
+          <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
+            <LinearGradient 
+              colors={[theme.colors.surfaceHighlight, theme.colors.surface]} 
+              style={styles.sheetContent}
+            >
+              <View style={styles.modalHandle} />
             <Text style={[theme.typography.subheader, { marginBottom: 16 }]}>Select Activity Level</Text>
             {activityLevels.map((level) => (
               <TouchableOpacity 
@@ -211,8 +220,9 @@ export default function ProfileScreen() {
                 <Text style={styles.sheetItemDesc}>{level.desc}</Text>
               </TouchableOpacity>
             ))}
-          </View>
-        </Pressable>
+            </LinearGradient>
+          </Pressable>
+        </View>
       </Modal>
     </SafeAreaView>
   );

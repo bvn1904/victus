@@ -2,7 +2,7 @@ export const theme = {
   colors: {
     background: '#121212', surface: '#1E1E1E', surfaceHighlight: '#2C2C2E', 
     textPrimary: '#FFFFFF', textSecondary: '#A0A0A0',
-    protein: '#A7F3D0', carbs: '#FDE68A', fat: '#FBCFE8', water: '#60A5FA',   
+    protein: '#A7F3D0', carbs: '#FDE68A', fats: '#FBCFE8', water: '#60A5FA',   
     primary: '#FFFFFF', border: '#333333', success: '#34D399', error: '#F87171',
   },
   spacing: { s: 8, m: 16, l: 24, xl: 32 },
