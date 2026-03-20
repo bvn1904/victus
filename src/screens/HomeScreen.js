@@ -4,12 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Circle } from 'react-native-svg';
-import { Plus, Minus, Trash2, Edit2, Settings, CheckSquare, Square, X } from 'lucide-react-native'; // Added Minus
+import { ChevronLeft, ChevronRight } from 'lucide-react-native'; // Added Minus
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics'; 
 import Toast from 'react-native-toast-message';
 import { theme } from '../theme';
-import { getMealsByDate, addMealToDB, updateMealInDB, deleteMealFromDB, getHabits, addHabit, deleteHabit, toggleHabit, getCompletedHabitsByDate } from '../database';
+import { getMealsByDate, addMealToDB, updateMealInDB, deleteMealFromDB, getHabits, addHabit, deleteHabit, toggleHabit, getCompletedHabitsByDate, getTopMeals, updateHabit } from '../database';
 
 const ProgressRing = ({ size, strokeWidth, progress, color, children }) => {
   const radius = (size - strokeWidth) / 2;
@@ -30,6 +30,7 @@ const ProgressRing = ({ size, strokeWidth, progress, color, children }) => {
 
 export default function HomeScreen() {
   const [selectedDateOffset, setSelectedDateOffset] = useState(0); 
+  const [baseDateOffset, setBaseDateOffset] = useState(0); // For pagination
   const [meals, setMeals] = useState([]);
   
   const [waterGlasses, setWaterGlasses] = useState(0);
@@ -39,6 +40,7 @@ export default function HomeScreen() {
   const [habits, setHabits] = useState([]);
   const [completedHabits, setCompletedHabits] = useState([]);
   const [isHabitModalVisible, setHabitModalVisible] = useState(false);
+  const [editingHabit, setEditingHabit] = useState(null);
   const [newHabitName, setNewHabitName] = useState('');
 
   const [isModalVisible, setModalVisible] = useState(false);
@@ -63,18 +65,42 @@ export default function HomeScreen() {
     return d.toISOString().split('T')[0]; 
   };
 
+  const [topMeal, setTopMeal] = useState(null);
+
   useFocusEffect(
     useCallback(() => {
       loadProfileTargets();
       loadWaterConfig();
-    }, [])
+      loadTopMeal();
+      // Ensure data refreshes when screen is focused (fixes "reopen needed" bug)
+      loadDailyMeals();
+      loadDailyHabits();
+      loadDailyWater();
+    }, [selectedDateOffset]) // Re-run when date changes
   );
 
   useEffect(() => {
     loadDailyMeals();
     loadDailyHabits();
     loadDailyWater();
+    loadTopMeal();
   }, [selectedDateOffset]);
+
+  const loadTopMeal = () => {
+    const top = getTopMeals();
+    if (top && top.length > 0) setTopMeal(top[0]);
+  };
+
+  const handleQuickAddMeal = () => {
+    if (!topMeal) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = getActiveDateString();
+    
+    addMealToDB(topMeal.name, topMeal.calories, topMeal.protein, topMeal.carbs, topMeal.fats, dateStr, timeStr);
+    Toast.show({ type: 'success', text1: 'Meal Logged', text2: `Added ${topMeal.name}` });
+    loadDailyMeals();
+  };
 
   const loadDailyWater = async () => {
     try {
@@ -187,11 +213,30 @@ export default function HomeScreen() {
 
   const handleSaveHabit = () => {
     if(!newHabitName) return;
-    addHabit(newHabitName);
+    
+    if (editingHabit) {
+      updateHabit(editingHabit.id, newHabitName);
+      Toast.show({ type: 'success', text1: 'Habit Updated' });
+    } else {
+      addHabit(newHabitName);
+      Toast.show({ type: 'success', text1: 'Habit Added' });
+    }
+
     setNewHabitName('');
+    setEditingHabit(null);
     setHabitModalVisible(false);
     loadDailyHabits();
-    Toast.show({ type: 'success', text1: 'Habit Added' });
+  };
+
+  const handleOpenHabitModal = (habit = null) => {
+    if (habit) {
+      setEditingHabit(habit);
+      setNewHabitName(habit.name);
+    } else {
+      setEditingHabit(null);
+      setNewHabitName('');
+    }
+    setHabitModalVisible(true);
   };
 
   const handleDeleteHabit = (id) => {
@@ -209,11 +254,21 @@ export default function HomeScreen() {
   const parsedWaterGoal = parseInt(waterConfig.goal) || 8;
 
   const generateDates = () => {
-    const dates = []; const today = new Date();
+    const dates = [];
+    const today = new Date();
+    // Generate 3 days based on baseDateOffset
     for (let i = -1; i <= 1; i++) {
-      const d = new Date(today); d.setDate(today.getDate() + i);
-      let dayName = d.toLocaleDateString('en-US', { weekday: 'short' }); if (i === 0) dayName = 'Today';
-      dates.push({ offset: i, dayName: dayName, dayNumber: d.getDate().toString().padStart(2, '0') });
+      const offset = baseDateOffset + i;
+      const d = new Date(today);
+      d.setDate(today.getDate() + offset);
+      let dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      if (offset === 0) dayName = 'Today';
+      
+      dates.push({ 
+        offset: offset, 
+        dayName: dayName, 
+        dayNumber: d.getDate().toString().padStart(2, '0') 
+      });
     }
     return dates;
   };
@@ -224,12 +279,37 @@ export default function HomeScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         <View style={styles.datePickerRow}>
+          <TouchableOpacity onPress={() => {
+             Haptics.selectionAsync();
+             const newOffset = baseDateOffset - 3;
+             setBaseDateOffset(newOffset);
+             setSelectedDateOffset(newOffset); // Jump to the middle day of new set
+          }} style={styles.navArrow}>
+            <ChevronLeft color={theme.colors.textSecondary} size={24} />
+          </TouchableOpacity>
+
           {dates.map((item) => (
-            <TouchableOpacity key={item.offset} style={[styles.dateItem, selectedDateOffset === item.offset && styles.dateItemActive]} onPress={() => { Haptics.selectionAsync(); setSelectedDateOffset(item.offset); }}>
+            <TouchableOpacity 
+              key={item.offset} 
+              style={[styles.dateItem, selectedDateOffset === item.offset && styles.dateItemActive]} 
+              onPress={() => { 
+                Haptics.selectionAsync(); 
+                setSelectedDateOffset(item.offset); 
+              }}
+            >
               <Text style={[styles.dateDayName, selectedDateOffset === item.offset && styles.dateTextActive]}>{item.dayName}</Text>
               <Text style={[styles.dateDayNumber, selectedDateOffset === item.offset && styles.dateTextActive]}>{item.dayNumber}</Text>
             </TouchableOpacity>
           ))}
+
+          <TouchableOpacity onPress={() => {
+             Haptics.selectionAsync();
+             const newOffset = baseDateOffset + 3;
+             setBaseDateOffset(newOffset);
+             setSelectedDateOffset(newOffset);
+          }} style={styles.navArrow}>
+            <ChevronRight color={theme.colors.textSecondary} size={24} />
+          </TouchableOpacity>
         </View>
 
         <LinearGradient colors={[theme.colors.surfaceHighlight, theme.colors.surface]} style={[styles.card, styles.calorieCard]}>
@@ -302,7 +382,7 @@ export default function HomeScreen() {
 
         <View style={styles.mealsHeaderRow}>
           <Text style={styles.sectionTitle}>Daily Checklist</Text>
-          <TouchableOpacity style={styles.blackAddBtn} onPress={() => setHabitModalVisible(true)}>
+          <TouchableOpacity style={styles.blackAddBtn} onPress={() => handleOpenHabitModal(null)}>
             <Plus color={theme.colors.primary} size={18} />
           </TouchableOpacity>
         </View>
@@ -315,13 +395,27 @@ export default function HomeScreen() {
                 {isDone ? <CheckSquare color={theme.colors.primary} size={24} /> : <Square color={theme.colors.textSecondary} size={24} />}
                 <Text style={[styles.habitText, isDone && {textDecorationLine: 'line-through', color: theme.colors.textSecondary}]}>{habit.name}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDeleteHabit(habit.id)}><X color={theme.colors.textSecondary} size={20} /></TouchableOpacity>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                 <TouchableOpacity onPress={() => handleOpenHabitModal(habit)} style={{ marginRight: 12 }}>
+                    <Edit2 color={theme.colors.textSecondary} size={18} />
+                 </TouchableOpacity>
+                 <TouchableOpacity onPress={() => handleDeleteHabit(habit.id)}>
+                    <X color={theme.colors.textSecondary} size={20} />
+                 </TouchableOpacity>
+              </View>
             </View>
           );
         })}
 
         <View style={[styles.mealsHeaderRow, {marginTop: 20}]}>
-          <Text style={styles.sectionTitle}>Meals</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <Text style={styles.sectionTitle}>Meals</Text>
+            {topMeal && (
+              <TouchableOpacity style={styles.quickAddBtn} onPress={handleQuickAddMeal}>
+                <Text style={styles.quickAddText}>+ {topMeal.name}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <TouchableOpacity style={styles.blackAddBtn} onPress={() => handleOpenModal(null)}>
             <Plus color={theme.colors.primary} size={18} />
           </TouchableOpacity>
@@ -385,9 +479,9 @@ export default function HomeScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <Pressable style={styles.modalOverlay} onPress={() => setHabitModalVisible(false)}>
             <Pressable style={styles.sheetContent}>
-              <Text style={styles.sheetTitle}>New Daily Habit</Text>
+              <Text style={styles.sheetTitle}>{editingHabit ? 'Edit Habit' : 'New Daily Habit'}</Text>
               <TextInput style={styles.inputPremium} placeholderTextColor={theme.colors.textSecondary} placeholder="e.g., Creatine 5g" value={newHabitName} onChangeText={setNewHabitName} />
-              <TouchableOpacity style={styles.saveButton} onPress={handleSaveHabit}><Text style={styles.saveButtonText}>Add Habit</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveHabit}><Text style={styles.saveButtonText}>{editingHabit ? 'Update Habit' : 'Add Habit'}</Text></TouchableOpacity>
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>

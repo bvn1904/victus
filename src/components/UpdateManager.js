@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, Linking, AppState } from 'react-native';
 import * as Updates from 'expo-updates';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
@@ -20,6 +20,12 @@ export default function UpdateManager() {
 
   useEffect(() => {
     checkUpdates();
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        checkUpdates();
+      }
+    });
+    return () => subscription.remove();
   }, []);
 
   const checkUpdates = async () => {

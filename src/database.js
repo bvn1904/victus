@@ -23,7 +23,8 @@ export const initDB = () => {
       -- Habits Table (Stores items like 'Creatine')
       CREATE TABLE IF NOT EXISTS habits (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL
+        name TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_DATE
       );
 
       -- Habit Logs Table (Stores which habit was checked off on which date)
@@ -80,20 +81,56 @@ export const deleteMealFromDB = (id) => {
   }
 };
 
+export const getTopMeals = () => {
+  try {
+    return db.getAllSync(`
+      SELECT name, calories, protein, carbs, fats, COUNT(*) as frequency 
+      FROM meals 
+      GROUP BY name 
+      ORDER BY frequency DESC 
+      LIMIT 1
+    `);
+  } catch (error) {
+    console.error("Error fetching top meals:", error);
+    return [];
+  }
+};
+
 // -----------------------------------------
 // HABIT (DAILY CHECKBOX) FUNCTIONS
 // -----------------------------------------
 
 export const addHabit = (name) => {
   try {
-    db.prepareSync('INSERT INTO habits (name) VALUES (?)').executeSync([name]);
+    const today = new Date().toISOString().split('T')[0];
+    db.prepareSync('INSERT INTO habits (name, created_at) VALUES (?, ?)').executeSync([name, today]);
   } catch (error) {
     console.error("Error adding habit:", error);
   }
 };
 
-export const getHabits = () => {
+export const updateHabit = (id, name) => {
   try {
+    db.prepareSync('UPDATE habits SET name = ? WHERE id = ?').executeSync([name, id]);
+  } catch (error) {
+    console.error("Error updating habit:", error);
+  }
+};
+
+export const updateHabit = (id, name) => {
+  try {
+    db.prepareSync('UPDATE habits SET name = ? WHERE id = ?').executeSync([name, id]);
+  } catch (error) {
+    console.error("Error updating habit:", error);
+  }
+};
+
+export const getHabits = (date) => {
+  try {
+    // Return habits created on or before the given date
+    if (date) {
+        return db.getAllSync('SELECT * FROM habits WHERE created_at <= ?', [date]);
+    }
     return db.getAllSync('SELECT * FROM habits');
   } catch (error) {
     console.error("Error fetching habits:", error);
