@@ -117,14 +117,6 @@ export const updateHabit = (id, name) => {
   }
 };
 
-export const updateHabit = (id, name) => {
-  try {
-    db.prepareSync('UPDATE habits SET name = ? WHERE id = ?').executeSync([name, id]);
-  } catch (error) {
-    console.error("Error updating habit:", error);
-  }
-};
-
 export const getHabits = (date) => {
   try {
     // Return habits created on or before the given date
