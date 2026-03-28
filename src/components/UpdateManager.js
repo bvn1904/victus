@@ -159,7 +159,7 @@ export default function UpdateManager() {
                 disabled={status === 'downloading'}
             >
               <LinearGradient
-                colors={['#4F46E5', '#2563EB']}
+                colors={[theme.colors.accent, '#0095CC']}
                 start={{x: 0, y: 0}} end={{x: 1, y: 1}}
                 style={styles.gradientButton}
               >
@@ -188,19 +188,19 @@ export default function UpdateManager() {
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' },
-  modalContainer: { width: '85%', maxWidth: 340, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 10 },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  iconContainer: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
-  title: { fontSize: 20, fontWeight: '700', color: '#FFF' },
-  versionText: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 2 },
-  content: { marginBottom: 24 },
-  sectionHeader: { fontSize: 12, fontWeight: '700', color: theme.colors.textSecondary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
-  notes: { fontSize: 16, color: '#E0E0E0', lineHeight: 24 },
+  overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.7)' },
+  modalContainer: { width: '85%', maxWidth: 340, borderRadius: 28, padding: 28, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.6, shadowRadius: 24, elevation: 12 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+  iconContainer: { width: 52, height: 52, borderRadius: 26, backgroundColor: theme.colors.glowCyan, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  title: { fontSize: 22, fontWeight: '700', color: '#FFF', letterSpacing: -0.3 },
+  versionText: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 4 },
+  content: { marginBottom: 28 },
+  sectionHeader: { fontSize: 11, fontWeight: '700', color: theme.colors.textSecondary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.2 },
+  notes: { fontSize: 15, color: '#E0E0E0', lineHeight: 24 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 8 },
-  cancelButton: { paddingVertical: 12, paddingHorizontal: 16, marginRight: 8 },
+  cancelButton: { paddingVertical: 14, paddingHorizontal: 18, marginRight: 8 },
   cancelText: { color: theme.colors.textSecondary, fontSize: 16, fontWeight: '500' },
-  updateButton: { borderRadius: 12, overflow: 'hidden' },
-  gradientButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 20 },
+  updateButton: { borderRadius: 14, overflow: 'hidden' },
+  gradientButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 22 },
   updateText: { color: '#FFF', fontSize: 16, fontWeight: '600' }
 });

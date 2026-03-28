@@ -8,16 +8,16 @@
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "cover",
-      "backgroundColor": "#1E1E1E"
+      "resizeMode": "contain",
+      "backgroundColor": "#0D0D0F"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1E1E1E",
-        "foregroundImage": "./assets/icon.png"
+        "backgroundColor": "#0D0D0F",
+        "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "package": "com.bvn1904.victus"
     },

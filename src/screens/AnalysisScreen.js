@@ -97,17 +97,29 @@ export default function AnalysisScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background }, container: { flex: 1 }, scrollContent: { padding: 16, paddingBottom: 100 },
+  safeArea: { flex: 1, backgroundColor: theme.colors.background }, 
+  container: { flex: 1 }, 
+  scrollContent: { padding: 16, paddingBottom: 100 },
   
-  // Alignment Fixes
-  headerContainerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24, marginTop: 10 },
-  headerSubtitleRight: { color: theme.colors.textSecondary, fontSize: 14, fontWeight: '500', marginBottom: 4 },
+  // Header styling
+  headerContainerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 28, marginTop: 12 },
+  headerSubtitleRight: { color: theme.colors.textSecondary, fontSize: 13, fontWeight: '500', marginBottom: 4, letterSpacing: 0.3 },
   
-  card: { borderRadius: 20, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: theme.colors.border },
-  chartHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 }, chartTitle: { color: theme.colors.textPrimary, fontSize: 18, fontWeight: '700', marginLeft: 8 },
+  // Card styling
+  card: { borderRadius: 24, padding: 24, marginBottom: 24, borderWidth: 1, borderColor: theme.colors.border },
+  chartHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 }, 
+  chartTitle: { color: theme.colors.textPrimary, fontSize: 17, fontWeight: '700', marginLeft: 10, letterSpacing: -0.3 },
   chartContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 180, paddingTop: 20 },
-  barColumn: { alignItems: 'center', width: 36 }, barTrack: { width: 14, height: 120, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, justifyContent: 'flex-end', overflow: 'hidden', marginVertical: 8 }, barFill: { width: '100%', borderRadius: 8 },
-  barLabel: { color: theme.colors.textSecondary, fontSize: 12, fontWeight: '500' }, barValueText: { color: theme.colors.textPrimary, fontSize: 10, fontWeight: '600', height: 14 },
-  sectionTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 16 },
-  averagesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }, avgCard: { width: '48%', backgroundColor: theme.colors.surfaceHighlight, padding: 20, borderRadius: 16, marginBottom: 16, alignItems: 'center' }, avgValue: { fontSize: 28, fontWeight: '800', color: theme.colors.textPrimary, marginBottom: 4 }, avgLabel: { fontSize: 14, color: theme.colors.textSecondary, fontWeight: '500' }
+  barColumn: { alignItems: 'center', width: 38 }, 
+  barTrack: { width: 16, height: 120, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, justifyContent: 'flex-end', overflow: 'hidden', marginVertical: 8 }, 
+  barFill: { width: '100%', borderRadius: 10 },
+  barLabel: { color: theme.colors.textSecondary, fontSize: 11, fontWeight: '600', letterSpacing: 0.3, textTransform: 'uppercase' }, 
+  barValueText: { color: theme.colors.textPrimary, fontSize: 10, fontWeight: '600', height: 14 },
+  
+  // Averages section
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 18, letterSpacing: -0.3 },
+  averagesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }, 
+  avgCard: { width: '48%', backgroundColor: theme.colors.surface, padding: 22, borderRadius: 20, marginBottom: 16, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border }, 
+  avgValue: { fontSize: 28, fontWeight: '800', color: theme.colors.textPrimary, marginBottom: 6, letterSpacing: -1 }, 
+  avgLabel: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: '500', letterSpacing: 0.3, textTransform: 'uppercase' }
 });
