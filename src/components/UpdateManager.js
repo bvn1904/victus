@@ -32,28 +32,33 @@ export default function UpdateManager() {
     if (__DEV__) return;
 
     // 1. Check Snooze
-    const lastPrompt = await SecureStore.getItemAsync(SNOOZE_KEY);
-    if (lastPrompt && Date.now() - parseInt(lastPrompt) < SNOOZE_DURATION) {
-      console.log('Update snoozed');
-      return;
-    }
+    try {
+      const lastPrompt = await SecureStore.getItemAsync(SNOOZE_KEY);
+      if (lastPrompt && Date.now() - parseInt(lastPrompt) < SNOOZE_DURATION) {
+        console.log('Update snoozed');
+        return;
+      }
+    } catch (e) { console.log('Snooze check failed', e); }
 
     // 2. Check Native (GitHub) - Priority
     try {
       const response = await fetch(UPDATE_CHECK_URL);
       if (response.ok) {
-        const data = await response.json();
-        const currentVersion = Constants.expoConfig?.version || '1.0.0';
-        
-        if (compareVersions(data.version, currentVersion) > 0) {
-          setUpdateType('native');
-          setMeta({ 
-            version: data.version, 
-            notes: data.notes || 'Major update available.', 
-            apkUrl: data.apkUrl 
-          });
-          setModalVisible(true);
-          return; // Stop here if native update found
+        const text = await response.text();
+        if (text && text.trim().startsWith('{')) {
+          const data = JSON.parse(text);
+          const currentVersion = Constants.expoConfig?.version || Constants.manifest?.version || '1.0.0';
+          
+          if (data.version && compareVersions(data.version, currentVersion) > 0) {
+            setUpdateType('native');
+            setMeta({ 
+              version: data.version, 
+              notes: data.notes || 'Major update available.', 
+              apkUrl: data.apkUrl || data.downloadUrl 
+            });
+            setModalVisible(true);
+            return;
+          }
         }
       }
     } catch (e) { console.log('Native check failed', e); }
