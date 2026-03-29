@@ -8,7 +8,8 @@ import Toast, { BaseToast } from 'react-native-toast-message';
 
 import { theme } from './src/theme';
 import { initDB } from './src/database'; 
-import UpdateManager from './src/components/UpdateManager';
+// DISABLED: UpdateManager causing crash - commenting out for debugging
+// import UpdateManager from './src/components/UpdateManager';
 
 import ProfileScreen from './src/screens/ProfileScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -46,7 +47,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.background} />
-      <UpdateManager />
+      {/* DISABLED: <UpdateManager /> */}
       <NavigationContainer>
         <Tab.Navigator
           initialRouteName="Home"
