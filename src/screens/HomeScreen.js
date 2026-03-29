@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Circle } from 'react-native-svg';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native'; // Added Minus
+import { ChevronLeft, ChevronRight, Plus, Minus, Settings, Edit2, Trash2, Square, CheckSquare, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics'; 
 import Toast from 'react-native-toast-message';
