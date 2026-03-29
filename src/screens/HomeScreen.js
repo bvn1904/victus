@@ -491,65 +491,42 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background }, 
-  container: { flex: 1 }, 
-  scrollContent: { padding: 16, paddingBottom: 100 },
+  safeArea: { flex: 1, backgroundColor: theme.colors.background }, container: { flex: 1 }, scrollContent: { padding: 16, paddingBottom: 100 },
+  datePickerRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20 },
+  dateItem: { alignItems: 'center', paddingVertical: 10, paddingHorizontal: 24, borderRadius: 24 },
+  dateItemActive: { backgroundColor: theme.colors.surfaceHighlight },
+  dateDayName: { color: theme.colors.textSecondary, fontSize: 12, marginBottom: 4 }, dateDayNumber: { color: theme.colors.textPrimary, fontSize: 16, fontWeight: '700' }, dateTextActive: { color: theme.colors.primary },
+  card: { borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: theme.colors.border }, calorieCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, hugeNumber: { fontSize: 40, fontWeight: '800', color: theme.colors.textPrimary },
+  macrosRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }, macroCard: { borderRadius: 16, padding: 14, alignItems: 'center', width: '31%', borderWidth: 1, borderColor: theme.colors.border }, macroLabel: { fontSize: 13, fontWeight: '600', color: theme.colors.textPrimary, marginBottom: 10 },
+  ringTextSmall: { color: theme.colors.textPrimary, fontSize: 16, fontWeight: '700' }, ringTextMedium: { color: theme.colors.textPrimary, fontSize: 15, fontWeight: '700' }, ringTextTiny: { color: theme.colors.textSecondary, fontSize: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary }, 
   
-  // Date Picker - Premium styling
-  datePickerRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', marginBottom: 24 },
-  navArrow: { padding: 8, borderRadius: 12, backgroundColor: theme.colors.surface },
-  dateItem: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 16 },
-  dateItemActive: { backgroundColor: theme.colors.surfaceHighlight, borderWidth: 1, borderColor: theme.colors.accent + '40' },
-  dateDayName: { color: theme.colors.textSecondary, fontSize: 11, marginBottom: 4, letterSpacing: 0.5, textTransform: 'uppercase' }, 
-  dateDayNumber: { color: theme.colors.textPrimary, fontSize: 18, fontWeight: '700' }, 
-  dateTextActive: { color: theme.colors.accent },
+  // Standardized Black Add Buttons
+  blackAddBtn: { backgroundColor: theme.colors.background, padding: 8, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' },
   
-  // Cards - Premium styling with subtle glow
-  card: { borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: theme.colors.border }, 
-  calorieCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, 
-  hugeNumber: { fontSize: 42, fontWeight: '800', color: theme.colors.textPrimary, letterSpacing: -1 },
-  
-  // Macros - Refined sizing
-  macrosRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }, 
-  macroCard: { borderRadius: 20, padding: 16, alignItems: 'center', width: '31%', borderWidth: 1, borderColor: theme.colors.border }, 
-  macroLabel: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary, marginBottom: 12, letterSpacing: 0.5, textTransform: 'uppercase' },
-  ringTextSmall: { color: theme.colors.textPrimary, fontSize: 17, fontWeight: '700' }, 
-  ringTextMedium: { color: theme.colors.textPrimary, fontSize: 15, fontWeight: '700' }, 
-  ringTextTiny: { color: theme.colors.textSecondary, fontSize: 10 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.textPrimary, letterSpacing: -0.3 }, 
-  
-  // Standardized Premium Add Buttons
-  blackAddBtn: { backgroundColor: theme.colors.background, padding: 10, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' },
-  
-  // Water UI - Premium styling
+  // Embedded Text Water UI
   waterTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  waterBarContainerTall: { height: 32, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, overflow: 'hidden', justifyContent: 'center' },
-  waterBarFillTall: { height: '100%', backgroundColor: theme.colors.water, borderRadius: 16, position: 'absolute', top: 0, left: 0 },
+  waterBarContainerTall: { height: 28, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, overflow: 'hidden', justifyContent: 'center' },
+  waterBarFillTall: { height: '100%', backgroundColor: theme.colors.water, borderRadius: 14, position: 'absolute', top: 0, left: 0 },
   waterBarTextWrapper: { position: 'absolute', width: '100%', alignItems: 'center' },
   waterBarInsideText: { fontSize: 13, fontWeight: '700', color: theme.colors.textPrimary, textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
-  waterDetailsText: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 12, textAlign: 'center' },
+  waterDetailsText: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 10, textAlign: 'center' },
 
-  // Meals Section - Premium styling
-  mealsHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 14, paddingLeft: 4, paddingRight: 16 }, 
-  emptyMealsText: { color: theme.colors.textSecondary, textAlign: 'center', marginTop: 16, fontStyle: 'italic', fontSize: 14 }, 
-  loggedMealItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surface, padding: 18, borderRadius: 18, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.border }, 
-  loggedMealName: { color: theme.colors.textPrimary, fontSize: 15, fontWeight: '600' }, 
-  loggedMealTime: { color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }, 
-  loggedMealCals: { color: theme.colors.accent, fontSize: 16, fontWeight: '700' },
+  // Alignment Fix: paddingRight 16 perfectly aligns with the inner padding of the Water card above it
+  mealsHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 12, paddingLeft: 4, paddingRight: 16 }, 
+  emptyMealsText: { color: theme.colors.textSecondary, textAlign: 'center', marginTop: 10, fontStyle: 'italic' }, 
+  loggedMealItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surface, padding: 16, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.border }, loggedMealName: { color: theme.colors.textPrimary, fontSize: 15, fontWeight: '600' }, loggedMealTime: { color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }, loggedMealCals: { color: theme.colors.primary, fontSize: 16, fontWeight: '700' },
   
-  // Habits - Premium styling
-  habitItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surface, padding: 18, borderRadius: 18, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.border },
-  habitLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 }, 
-  habitText: { color: theme.colors.textPrimary, fontSize: 15, marginLeft: 14, fontWeight: '500' },
+  habitItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surface, padding: 16, borderRadius: 16, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.border },
+  habitLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 }, habitText: { color: theme.colors.textPrimary, fontSize: 16, marginLeft: 12, fontWeight: '500' },
   
-  // Modals - Premium styling with blur effect
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-  sheetContent: { backgroundColor: theme.colors.surface, padding: 28, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 44 },
-  modalHandle: { width: 36, height: 4, backgroundColor: theme.colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: 24 },
-  sheetTitle: { color: theme.colors.textPrimary, fontSize: 20, fontWeight: '700', marginBottom: 24, letterSpacing: -0.3 },
-  inputPremium: { backgroundColor: theme.colors.surfaceHighlight, color: theme.colors.textPrimary, padding: 18, borderRadius: 16, marginBottom: 14, fontSize: 16, borderWidth: 1, borderColor: theme.colors.border },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  sheetContent: { backgroundColor: theme.colors.surface, padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 40 },
+  modalHandle: { width: 40, height: 4, backgroundColor: theme.colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+  sheetTitle: { color: theme.colors.textPrimary, fontSize: 18, fontWeight: '700', marginBottom: 20 },
+  inputPremium: { backgroundColor: theme.colors.surfaceHighlight, color: theme.colors.textPrimary, padding: 16, borderRadius: 16, marginBottom: 12, fontSize: 16 },
   inputRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  inputPremiumThird: { backgroundColor: theme.colors.surfaceHighlight, color: theme.colors.textPrimary, padding: 16, borderRadius: 16, width: '31%', fontSize: 14, textAlign: 'center', borderWidth: 1, borderColor: theme.colors.border },
-  saveButton: { backgroundColor: theme.colors.accent, padding: 18, borderRadius: 16, alignItems: 'center', marginTop: 12 },
-  saveButtonText: { color: theme.colors.background, fontWeight: '700', fontSize: 16, letterSpacing: 0.3 },
+  inputPremiumThird: { backgroundColor: theme.colors.surfaceHighlight, color: theme.colors.textPrimary, padding: 16, borderRadius: 16, width: '31%', fontSize: 14, textAlign: 'center' },
+  saveButton: { backgroundColor: theme.colors.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 10 },
+  saveButtonText: { color: theme.colors.background, fontWeight: 'bold', fontSize: 16 },
 });
