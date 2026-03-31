@@ -68,7 +68,6 @@ export default function AnalysisScreen() {
           </View>
           
           <View style={styles.chartContainer}>
-            {/* Average line */}
             {averages.calories > 0 && (
               <View style={[styles.avgLine, { bottom: `${avgLinePosition}%` }]}>
                 <View style={styles.avgLineBar} />
@@ -122,12 +121,13 @@ const styles = StyleSheet.create({
   barLabel: { color: theme.colors.textSecondary, fontSize: 12, fontWeight: '500' }, 
   barValueText: { color: theme.colors.textPrimary, fontSize: 10, fontWeight: '600', height: 14 },
   
-  // Average line styles
   avgLine: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', zIndex: 10 },
   avgLineBar: { flex: 1, height: 1, backgroundColor: theme.colors.primary, opacity: 0.5 },
   avgLineText: { color: theme.colors.primary, fontSize: 9, fontWeight: '600', marginLeft: 4, opacity: 0.8 },
   
-  sectionTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 16 },
+  // INCREASED GAP HERE (marginTop)
+  sectionTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary, marginTop: 32, marginBottom: 16 },
+  
   averagesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }, 
   avgCard: { width: '48%', backgroundColor: theme.colors.surface, padding: 20, borderRadius: 16, marginBottom: 16, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border }, 
   avgValue: { fontSize: 28, fontWeight: '800', color: theme.colors.textPrimary, marginBottom: 4 }, 

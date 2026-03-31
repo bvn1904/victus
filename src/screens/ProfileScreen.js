@@ -99,7 +99,6 @@ export default function ProfileScreen() {
     let bmr = data.gender === 'male' ? (10 * w) + (6.25 * h) - (5 * a) + 5 : (10 * w) + (6.25 * h) - (5 * a) - 161;
     let maintenance = bmr * mult;
     
-    // Use custom maintenance if set
     if (customTargets?.customMaintenance && parseFloat(customTargets.customMaintenance) > 0) {
       maintenance = parseFloat(customTargets.customMaintenance);
     }
@@ -117,7 +116,6 @@ export default function ProfileScreen() {
 
   const currentActivityLabel = activityLevels.find(l => l.id === activityMultiplier)?.label || 'Select';
 
-  // CSV Export
   const handleExportData = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -128,7 +126,6 @@ export default function ProfileScreen() {
         return;
       }
 
-      // Build CSV content
       let csvContent = 'Date,Time,Meal Name,Calories,Protein,Carbs,Fats\n';
       if (data.meals?.length) {
         data.meals.forEach(meal => {
@@ -141,10 +138,7 @@ export default function ProfileScreen() {
 
       const isAvailable = await Sharing.isAvailableAsync();
       if (isAvailable) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'text/csv',
-          dialogTitle: 'Export Victus Data',
-        });
+        await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', dialogTitle: 'Export Victus Data' });
         Toast.show({ type: 'success', text1: 'Data Exported' });
       } else {
         Toast.show({ type: 'error', text1: 'Sharing not available' });
@@ -211,7 +205,7 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <Text style={[theme.typography.body, { marginTop: 12 }]}>Exercise Level</Text>
+          <Text style={[theme.typography.body, { marginTop: 8 }]}>Exercise Level</Text>
           <TouchableOpacity style={styles.exerciseTrigger} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setModalVisible(true); }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Activity color={theme.colors.primary} size={18} style={{ marginRight: 8 }} />
@@ -225,7 +219,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </LinearGradient>
 
-        <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={styles.card}>
+        <LinearGradient colors={[theme.colors.surfaceHighlight, theme.colors.surface]} style={styles.card}>
           <View style={styles.targetHeaderRow}>
             <Text style={theme.typography.subheader}>Daily Targets</Text>
             <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setTargetModalVisible(true); }}>
@@ -244,18 +238,11 @@ export default function ProfileScreen() {
         <View style={{flex: 1}}>
           <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill} />
           <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
-            <LinearGradient 
-              colors={[theme.colors.surfaceHighlight, theme.colors.surface]} 
-              style={styles.sheetContent}
-            >
+            <LinearGradient colors={[theme.colors.surfaceHighlight, theme.colors.surface]} style={styles.sheetContent}>
               <View style={styles.modalHandle} />
             <Text style={[theme.typography.subheader, { marginBottom: 16 }]}>Select Activity Level</Text>
             {activityLevels.map((level) => (
-              <TouchableOpacity 
-                key={level.id} 
-                style={[styles.sheetItem, activityMultiplier === level.id && styles.sheetItemActive]} 
-                onPress={() => { Haptics.selectionAsync(); setActivityMultiplier(level.id); setModalVisible(false); }}
-              >
+              <TouchableOpacity key={level.id} style={[styles.sheetItem, activityMultiplier === level.id && styles.sheetItemActive]} onPress={() => { Haptics.selectionAsync(); setActivityMultiplier(level.id); setModalVisible(false); }}>
                 <Text style={[styles.sheetItemTitle, activityMultiplier === level.id && { color: theme.colors.primary }]}>{level.label}</Text>
                 <Text style={styles.sheetItemDesc}>{level.desc}</Text>
               </TouchableOpacity>
@@ -272,31 +259,13 @@ export default function ProfileScreen() {
             <Pressable style={styles.sheetContentWhite}>
               <View style={styles.modalHandle} />
               <Text style={[theme.typography.subheader, { marginBottom: 16 }]}>Edit Targets</Text>
-              
               <Text style={theme.typography.body}>Custom Maintenance (optional)</Text>
-              <TextInput 
-                style={styles.inputPremium} 
-                value={customMaintenance} 
-                onChangeText={setCustomMaintenance} 
-                keyboardType="numeric" 
-                placeholder="Leave blank to use calculated"
-                placeholderTextColor={theme.colors.textSecondary}
-              />
-              
+              <TextInput style={styles.inputPremium} value={customMaintenance} onChangeText={setCustomMaintenance} keyboardType="numeric" placeholder="Leave blank to use calculated" placeholderTextColor={theme.colors.textSecondary} />
               <View style={styles.row}>
-                <View style={styles.inputGroup}>
-                  <Text style={theme.typography.body}>Cut %</Text>
-                  <TextInput style={styles.inputPremium} value={cutPercent} onChangeText={setCutPercent} keyboardType="numeric" />
-                </View>
-                <View style={styles.inputGroup}>
-                  <Text style={theme.typography.body}>Bulk %</Text>
-                  <TextInput style={styles.inputPremium} value={bulkPercent} onChangeText={setBulkPercent} keyboardType="numeric" />
-                </View>
+                <View style={styles.inputGroup}><Text style={theme.typography.body}>Cut %</Text><TextInput style={styles.inputPremium} value={cutPercent} onChangeText={setCutPercent} keyboardType="numeric" /></View>
+                <View style={styles.inputGroup}><Text style={theme.typography.body}>Bulk %</Text><TextInput style={styles.inputPremium} value={bulkPercent} onChangeText={setBulkPercent} keyboardType="numeric" /></View>
               </View>
-
-              <TouchableOpacity style={styles.button} onPress={saveTargets}>
-                <Text style={styles.buttonText}>Save Targets</Text>
-              </TouchableOpacity>
+              <TouchableOpacity style={styles.buttonBig} onPress={saveTargets}><Text style={styles.buttonText}>Save Targets</Text></TouchableOpacity>
             </Pressable>
           </Pressable>
         </View>
@@ -307,31 +276,34 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: theme.colors.background },
-  container: { flex: 1, padding: 16 },
+  container: { flex: 1, padding: 16, paddingBottom: 0 },
   
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 16 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 4 },
   exportIconBtn: { marginRight: 16, padding: 8 },
-  avatarCircleSmall: { width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  avatarImage: { width: 56, height: 56, borderRadius: 28 },
+  avatarCircleSmall: { width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  avatarImage: { width: 48, height: 48, borderRadius: 24 },
   
-  card: { padding: 20, borderRadius: 20, marginBottom: 16, borderWidth: 1, borderColor: theme.colors.border },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  card: { padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: theme.colors.border },
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   inputGroup: { flex: 0.48 },
-  inputPremium: { backgroundColor: theme.colors.surfaceHighlight, color: theme.colors.textPrimary, padding: 14, borderRadius: 12, marginTop: 6, fontSize: 16 },
-  inputWithIcon: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surfaceHighlight, paddingHorizontal: 12, borderRadius: 12, marginTop: 6, height: 50 },
+  inputPremium: { backgroundColor: theme.colors.surfaceHighlight, color: theme.colors.textPrimary, padding: 12, borderRadius: 12, marginTop: 4, fontSize: 16 },
+  inputWithIcon: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surfaceHighlight, paddingHorizontal: 12, borderRadius: 12, marginTop: 4, height: 46 },
   inputTextBorderless: { flex: 1, color: theme.colors.textPrimary, marginLeft: 8, fontSize: 16 },
-  toggleRow: { flexDirection: 'row', marginTop: 6, justifyContent: 'space-between' },
-  toggleBtn: { flex: 0.48, backgroundColor: theme.colors.surfaceHighlight, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  toggleRow: { flexDirection: 'row', marginTop: 4, justifyContent: 'space-between' },
+  toggleBtn: { flex: 0.48, backgroundColor: theme.colors.surfaceHighlight, paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
   toggleBtnActive: { backgroundColor: theme.colors.primary },
   toggleBtnText: { color: theme.colors.textSecondary, fontWeight: '700' },
   toggleBtnTextActive: { color: theme.colors.background },
-  exerciseTrigger: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surfaceHighlight, padding: 16, borderRadius: 12, marginTop: 6 },
+  exerciseTrigger: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surfaceHighlight, padding: 14, borderRadius: 12, marginTop: 4 },
   exerciseTriggerText: { color: theme.colors.textPrimary, fontSize: 16, fontWeight: '600' },
-  button: { backgroundColor: theme.colors.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 20 },
+  
+  // Reduced padding and margin for the button to save vertical space
+  button: { backgroundColor: theme.colors.primary, padding: 12, borderRadius: 12, alignItems: 'center', marginTop: 12 },
+  buttonBig: { backgroundColor: theme.colors.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 16 },
   buttonText: { color: theme.colors.background, fontWeight: 'bold', fontSize: 16 },
   
-  targetHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  targetRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.background },
+  targetHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  targetRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: theme.colors.background },
   targetLabel: { color: theme.colors.textSecondary, fontSize: 14 },
   targetValue: { color: theme.colors.textPrimary, fontWeight: '700', fontSize: 16 },
   

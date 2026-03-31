@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics'; 
 import Toast from 'react-native-toast-message';
 import { theme } from '../theme';
-import { getMealsByDate, addMealToDB, updateMealInDB, deleteMealFromDB, getHabits, addHabit, deleteHabit, toggleHabit, getCompletedHabitsByDate, getTopMeals, updateHabit } from '../database';
+import { getMealsByDate, addMealToDB, updateMealInDB, deleteMealFromDB, getHabits, addHabit, deleteHabit, toggleHabit, getCompletedHabitsByDate, updateHabit } from '../database';
 
 const ProgressRing = ({ size, strokeWidth, progress, color, children }) => {
   const radius = (size - strokeWidth) / 2;
@@ -30,7 +30,7 @@ const ProgressRing = ({ size, strokeWidth, progress, color, children }) => {
 
 export default function HomeScreen() {
   const [selectedDateOffset, setSelectedDateOffset] = useState(0); 
-  const [baseDateOffset, setBaseDateOffset] = useState(0); // For pagination
+  const [baseDateOffset, setBaseDateOffset] = useState(0); 
   const [meals, setMeals] = useState([]);
   
   const [waterGlasses, setWaterGlasses] = useState(0);
@@ -47,17 +47,13 @@ export default function HomeScreen() {
   const [editingMealId, setEditingMealId] = useState(null);
   const [mealForm, setMealForm] = useState({ name: '', calories: '', protein: '', carbs: '', fats: '' });
   
-  // -------------------------------------------------------------------------
-  // TARGETS CONFIGURATION
-  // -------------------------------------------------------------------------
+  // Quick Meal Setup
+  const [customQuickMeal, setCustomQuickMeal] = useState(null);
+  const [isQuickMealModalVisible, setQuickMealModalVisible] = useState(false);
+  
   const [dynamicTargets, setDynamicTargets] = useState({ calories: 2500, protein: 150, carbs: 200, fats: 70 });
-  
-  // OPTION 1: DYNAMIC TARGETS (Uses your Profile Screen stats)
   const targets = dynamicTargets; 
-  
-  // OPTION 2: MANUAL OVERRIDE (Uncomment the line below to hardcode your own targets)
   // const targets = { calories: 2800, protein: 180, carbs: 250, fats: 80 };
-  // -------------------------------------------------------------------------
 
   const getActiveDateString = () => {
     const d = new Date();
@@ -65,30 +61,38 @@ export default function HomeScreen() {
     return d.toISOString().split('T')[0]; 
   };
 
-  const [topMeals, setTopMeals] = useState([]);
-
   useFocusEffect(
     useCallback(() => {
       loadProfileTargets();
       loadWaterConfig();
-      loadTopMeals();
-      // Ensure data refreshes when screen is focused (fixes "reopen needed" bug)
+      loadCustomQuickMeal();
       loadDailyMeals();
       loadDailyHabits();
       loadDailyWater();
-    }, [selectedDateOffset]) // Re-run when date changes
+    }, [selectedDateOffset]) 
   );
 
   useEffect(() => {
     loadDailyMeals();
     loadDailyHabits();
     loadDailyWater();
-    loadTopMeals();
   }, [selectedDateOffset]);
 
-  const loadTopMeals = () => {
-    const top = getTopMeals(3);
-    setTopMeals(top || []);
+  const loadCustomQuickMeal = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('@custom_quick_meal');
+      if (saved) setCustomQuickMeal(JSON.parse(saved));
+    } catch (e) { console.error(e); }
+  };
+
+  const handleSaveCustomQuickMeal = async () => {
+    if (!mealForm.name || !mealForm.calories) return;
+    try {
+      await AsyncStorage.setItem('@custom_quick_meal', JSON.stringify(mealForm));
+      setCustomQuickMeal(mealForm);
+      setQuickMealModalVisible(false);
+      Toast.show({ type: 'success', text1: 'Quick Meal Saved' });
+    } catch (e) { console.error(e); }
   };
 
   const handleQuickAddMeal = (meal) => {
@@ -97,7 +101,7 @@ export default function HomeScreen() {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const dateStr = getActiveDateString();
     
-    addMealToDB(meal.name, meal.calories, meal.protein, meal.carbs, meal.fats, dateStr, timeStr);
+    addMealToDB(meal.name, parseInt(meal.calories)||0, parseInt(meal.protein)||0, parseInt(meal.carbs)||0, parseInt(meal.fats)||0, dateStr, timeStr);
     Toast.show({ type: 'success', text1: 'Meal Logged', text2: `Added ${meal.name}` });
     loadDailyMeals();
   };
@@ -129,13 +133,11 @@ export default function HomeScreen() {
         const h = parseFloat(data.height) || 177.8; 
         const a = parseInt(data.age) || 22; 
         const mult = parseFloat(data.activityMultiplier) || 1.2;
-        
         let bmr = data.gender === 'male' ? (10 * w) + (6.25 * h) - (5 * a) + 5 : (10 * w) + (6.25 * h) - (5 * a) - 161;
         const maintenance = Math.round(bmr * mult);
         const protein = Math.round(w * 2); 
         const fats = Math.round(w * 1);    
         const carbs = Math.round((maintenance - (protein * 4) - (fats * 9)) / 4); 
-
         setDynamicTargets({ calories: maintenance, protein, carbs, fats });
       }
     } catch (e) { console.error(e); }
@@ -161,9 +163,7 @@ export default function HomeScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (meal) {
       setEditingMealId(meal.id);
-      setMealForm({
-        name: meal.name, calories: String(meal.calories), protein: String(meal.protein), carbs: String(meal.carbs), fats: String(meal.fats)
-      });
+      setMealForm({ name: meal.name, calories: String(meal.calories), protein: String(meal.protein), carbs: String(meal.carbs), fats: String(meal.fats) });
     } else {
       setEditingMealId(null);
       setMealForm({ name: '', calories: '', protein: '', carbs: '', fats: '' });
@@ -200,7 +200,7 @@ export default function HomeScreen() {
   };
 
   const loadDailyHabits = () => {
-    setHabits(getHabits(getActiveDateString()));
+    setHabits(getHabits()); // FIXED: Removed date argument
     setCompletedHabits(getCompletedHabitsByDate(getActiveDateString()));
   };
 
@@ -213,7 +213,6 @@ export default function HomeScreen() {
 
   const handleSaveHabit = () => {
     if(!newHabitName) return;
-    
     if (editingHabit) {
       updateHabit(editingHabit.id, newHabitName);
       Toast.show({ type: 'success', text1: 'Habit Updated' });
@@ -221,21 +220,13 @@ export default function HomeScreen() {
       addHabit(newHabitName);
       Toast.show({ type: 'success', text1: 'Habit Added' });
     }
-
-    setNewHabitName('');
-    setEditingHabit(null);
-    setHabitModalVisible(false);
+    setNewHabitName(''); setEditingHabit(null); setHabitModalVisible(false);
     loadDailyHabits();
   };
 
   const handleOpenHabitModal = (habit = null) => {
-    if (habit) {
-      setEditingHabit(habit);
-      setNewHabitName(habit.name);
-    } else {
-      setEditingHabit(null);
-      setNewHabitName('');
-    }
+    if (habit) { setEditingHabit(habit); setNewHabitName(habit.name); } 
+    else { setEditingHabit(null); setNewHabitName(''); }
     setHabitModalVisible(true);
   };
 
@@ -254,21 +245,11 @@ export default function HomeScreen() {
   const parsedWaterGoal = parseInt(waterConfig.goal) || 8;
 
   const generateDates = () => {
-    const dates = [];
-    const today = new Date();
-    // Generate 3 days based on baseDateOffset
+    const dates = []; const today = new Date();
     for (let i = -1; i <= 1; i++) {
-      const offset = baseDateOffset + i;
-      const d = new Date(today);
-      d.setDate(today.getDate() + offset);
-      let dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-      if (offset === 0) dayName = 'Today';
-      
-      dates.push({ 
-        offset: offset, 
-        dayName: dayName, 
-        dayNumber: d.getDate().toString().padStart(2, '0') 
-      });
+      const offset = baseDateOffset + i; const d = new Date(today); d.setDate(today.getDate() + offset);
+      let dayName = d.toLocaleDateString('en-US', { weekday: 'short' }); if (offset === 0) dayName = 'Today';
+      dates.push({ offset: offset, dayName: dayName, dayNumber: d.getDate().toString().padStart(2, '0') });
     }
     return dates;
   };
@@ -279,40 +260,18 @@ export default function HomeScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         <View style={styles.datePickerRow}>
-          <TouchableOpacity onPress={() => {
-             Haptics.selectionAsync();
-             const newOffset = baseDateOffset - 3;
-             setBaseDateOffset(newOffset);
-             setSelectedDateOffset(newOffset); // Jump to the middle day of new set
-          }} style={styles.navArrow}>
+          <TouchableOpacity onPress={() => { Haptics.selectionAsync(); const newOffset = baseDateOffset - 3; setBaseDateOffset(newOffset); setSelectedDateOffset(newOffset); }} style={styles.navArrow}>
             <ChevronLeft color={theme.colors.textSecondary} size={24} />
           </TouchableOpacity>
-
           {dates.map((item) => (
-            <TouchableOpacity 
-              key={item.offset} 
-              style={[styles.dateItem, selectedDateOffset === item.offset && styles.dateItemActive]} 
-              onPress={() => { 
-                Haptics.selectionAsync(); 
-                setSelectedDateOffset(item.offset); 
-              }}
-              onLongPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setBaseDateOffset(0);
-                setSelectedDateOffset(0);
-              }}
-            >
+            <TouchableOpacity key={item.offset} style={[styles.dateItem, selectedDateOffset === item.offset && styles.dateItemActive]} 
+              onPress={() => { Haptics.selectionAsync(); setSelectedDateOffset(item.offset); }}
+              onLongPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setBaseDateOffset(0); setSelectedDateOffset(0); }}>
               <Text style={[styles.dateDayName, selectedDateOffset === item.offset && styles.dateTextActive]}>{item.dayName}</Text>
               <Text style={[styles.dateDayNumber, selectedDateOffset === item.offset && styles.dateTextActive]}>{item.dayNumber}</Text>
             </TouchableOpacity>
           ))}
-
-          <TouchableOpacity onPress={() => {
-             Haptics.selectionAsync();
-             const newOffset = baseDateOffset + 3;
-             setBaseDateOffset(newOffset);
-             setSelectedDateOffset(newOffset);
-          }} style={styles.navArrow}>
+          <TouchableOpacity onPress={() => { Haptics.selectionAsync(); const newOffset = baseDateOffset + 3; setBaseDateOffset(newOffset); setSelectedDateOffset(newOffset); }} style={styles.navArrow}>
             <ChevronRight color={theme.colors.textSecondary} size={24} />
           </TouchableOpacity>
         </View>
@@ -331,25 +290,18 @@ export default function HomeScreen() {
         <View style={styles.macrosRow}>
           <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={styles.macroCard}>
             <Text style={styles.macroLabel}>Protein</Text>
-            <ProgressRing size={70} strokeWidth={6} progress={consumed.protein / targets.protein} color={theme.colors.protein}>
-               <Text style={styles.ringTextMedium}>{consumed.protein}</Text><Text style={styles.ringTextTiny}>/ {targets.protein}g</Text>
-            </ProgressRing>
+            <ProgressRing size={70} strokeWidth={6} progress={consumed.protein / targets.protein} color={theme.colors.protein}><Text style={styles.ringTextMedium}>{consumed.protein}</Text><Text style={styles.ringTextTiny}>/ {targets.protein}g</Text></ProgressRing>
           </LinearGradient>
           <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={styles.macroCard}>
             <Text style={styles.macroLabel}>Carbs</Text>
-            <ProgressRing size={70} strokeWidth={6} progress={consumed.carbs / targets.carbs} color={theme.colors.carbs}>
-               <Text style={styles.ringTextMedium}>{consumed.carbs}</Text><Text style={styles.ringTextTiny}>/ {targets.carbs}g</Text>
-            </ProgressRing>
+            <ProgressRing size={70} strokeWidth={6} progress={consumed.carbs / targets.carbs} color={theme.colors.carbs}><Text style={styles.ringTextMedium}>{consumed.carbs}</Text><Text style={styles.ringTextTiny}>/ {targets.carbs}g</Text></ProgressRing>
           </LinearGradient>
           <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={styles.macroCard}>
             <Text style={styles.macroLabel}>Fats</Text>
-            <ProgressRing size={70} strokeWidth={6} progress={consumed.fats / targets.fats} color={theme.colors.fats}>
-               <Text style={styles.ringTextMedium}>{consumed.fats}</Text><Text style={styles.ringTextTiny}>/ {targets.fats}g</Text>
-            </ProgressRing>
+            <ProgressRing size={70} strokeWidth={6} progress={consumed.fats / targets.fats} color={theme.colors.fat}><Text style={styles.ringTextMedium}>{consumed.fats}</Text><Text style={styles.ringTextTiny}>/ {targets.fats}g</Text></ProgressRing>
           </LinearGradient>
         </View>
 
-        {/* Updated Water UI with Minus and Plus */}
         <LinearGradient colors={[theme.colors.surfaceHighlight, theme.colors.surface]} style={styles.card}>
           <View style={styles.waterTopRow}>
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -359,18 +311,8 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              <TouchableOpacity 
-                style={[styles.blackAddBtn, { marginRight: 8 }]} 
-                onPress={() => updateWater(-1)}
-              >
-                <Minus color={theme.colors.primary} size={18} />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.blackAddBtn} 
-                onPress={() => updateWater(1)}
-              >
-                <Plus color={theme.colors.primary} size={18} />
-              </TouchableOpacity>
+              <TouchableOpacity style={[styles.blackAddBtn, { marginRight: 8 }]} onPress={() => updateWater(-1)}><Minus color={theme.colors.primary} size={18} /></TouchableOpacity>
+              <TouchableOpacity style={styles.blackAddBtn} onPress={() => updateWater(1)}><Plus color={theme.colors.primary} size={18} /></TouchableOpacity>
             </View>
           </View>
 
@@ -380,16 +322,12 @@ export default function HomeScreen() {
               <Text style={styles.waterBarInsideText}>{waterGlasses} out of {parsedWaterGoal} glasses</Text>
             </View>
           </View>
-          <Text style={styles.waterDetailsText}>
-             1 glass = {waterConfig.volume}ml (Goal: {parsedWaterGoal * (parseInt(waterConfig.volume) || 250)}ml)
-          </Text>
+          <Text style={styles.waterDetailsText}>1 glass = {waterConfig.volume}ml (Goal: {parsedWaterGoal * (parseInt(waterConfig.volume) || 250)}ml)</Text>
         </LinearGradient>
 
         <View style={styles.mealsHeaderRow}>
           <Text style={styles.sectionTitle}>Daily Checklist</Text>
-          <TouchableOpacity style={styles.blackAddBtn} onPress={() => handleOpenHabitModal(null)}>
-            <Plus color={theme.colors.primary} size={18} />
-          </TouchableOpacity>
+          <TouchableOpacity style={styles.blackAddBtn} onPress={() => handleOpenHabitModal(null)}><Plus color={theme.colors.primary} size={18} /></TouchableOpacity>
         </View>
         
         {habits.map(habit => {
@@ -401,35 +339,30 @@ export default function HomeScreen() {
                 <Text style={[styles.habitText, isDone && {textDecorationLine: 'line-through', color: theme.colors.textSecondary}]}>{habit.name}</Text>
               </TouchableOpacity>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                 <TouchableOpacity onPress={() => handleOpenHabitModal(habit)} style={{ marginRight: 12 }}>
-                    <Edit2 color={theme.colors.textSecondary} size={18} />
-                 </TouchableOpacity>
-                 <TouchableOpacity onPress={() => handleDeleteHabit(habit.id)}>
-                    <X color={theme.colors.textSecondary} size={20} />
-                 </TouchableOpacity>
+                 <TouchableOpacity onPress={() => handleOpenHabitModal(habit)} style={{ marginRight: 12 }}><Edit2 color={theme.colors.textSecondary} size={18} /></TouchableOpacity>
+                 <TouchableOpacity onPress={() => handleDeleteHabit(habit.id)}><X color={theme.colors.textSecondary} size={20} /></TouchableOpacity>
               </View>
             </View>
           );
         })}
 
         <View style={[styles.mealsHeaderRow, {marginTop: 20}]}>
-          <Text style={styles.sectionTitle}>Meals</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <Text style={styles.sectionTitle}>Meals</Text>
+            <TouchableOpacity onPress={() => { setMealForm({name: '', calories: '', protein: '', carbs: '', fats: ''}); setQuickMealModalVisible(true); }} style={{marginLeft: 12}}>
+              <Settings color={theme.colors.textSecondary} size={16} />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity style={styles.blackAddBtn} onPress={() => handleOpenModal(null)}>
             <Plus color={theme.colors.primary} size={18} />
           </TouchableOpacity>
         </View>
 
-        {topMeals.length > 0 && (
+        {customQuickMeal && (
           <View style={styles.quickMealsRow}>
-            {topMeals.map((meal, index) => (
-              <TouchableOpacity 
-                key={index} 
-                style={styles.quickMealBtn} 
-                onPress={() => handleQuickAddMeal(meal)}
-              >
-                <Text style={styles.quickMealText}>+ {meal.name}</Text>
-              </TouchableOpacity>
-            ))}
+            <TouchableOpacity style={styles.quickMealBtn} onPress={() => handleQuickAddMeal(customQuickMeal)}>
+              <Text style={styles.quickMealText}>+ {customQuickMeal.name} ({customQuickMeal.calories} kcal)</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -459,14 +392,32 @@ export default function HomeScreen() {
             <Pressable style={styles.sheetContent}>
               <View style={styles.modalHandle} />
               <Text style={styles.sheetTitle}>{editingMealId ? 'Edit Meal' : 'Log a Meal'}</Text>
-              <TextInput style={styles.inputPremium} placeholderTextColor={theme.colors.textSecondary} placeholder="Meal Name (e.g., Whey Protein)" value={mealForm.name} onChangeText={(text) => setMealForm({...mealForm, name: text})} />
+              <TextInput style={styles.inputPremium} placeholderTextColor={theme.colors.textSecondary} placeholder="Meal Name" value={mealForm.name} onChangeText={(text) => setMealForm({...mealForm, name: text})} />
               <TextInput style={styles.inputPremium} placeholderTextColor={theme.colors.textSecondary} placeholder="Total Calories" keyboardType="numeric" value={mealForm.calories} onChangeText={(text) => setMealForm({...mealForm, calories: text})} />
               <View style={styles.inputRow}>
-                <TextInput style={styles.inputPremiumThird} placeholderTextColor={theme.colors.textSecondary} placeholder="Protein (g)" keyboardType="numeric" value={mealForm.protein} onChangeText={(text) => setMealForm({...mealForm, protein: text})} />
-                <TextInput style={styles.inputPremiumThird} placeholderTextColor={theme.colors.textSecondary} placeholder="Carbs (g)" keyboardType="numeric" value={mealForm.carbs} onChangeText={(text) => setMealForm({...mealForm, carbs: text})} />
-                <TextInput style={styles.inputPremiumThird} placeholderTextColor={theme.colors.textSecondary} placeholder="Fats (g)" keyboardType="numeric" value={mealForm.fats} onChangeText={(text) => setMealForm({...mealForm, fats: text})} />
+                <TextInput style={styles.inputPremiumThird} placeholderTextColor={theme.colors.textSecondary} placeholder="Pro (g)" keyboardType="numeric" value={mealForm.protein} onChangeText={(text) => setMealForm({...mealForm, protein: text})} />
+                <TextInput style={styles.inputPremiumThird} placeholderTextColor={theme.colors.textSecondary} placeholder="Carb (g)" keyboardType="numeric" value={mealForm.carbs} onChangeText={(text) => setMealForm({...mealForm, carbs: text})} />
+                <TextInput style={styles.inputPremiumThird} placeholderTextColor={theme.colors.textSecondary} placeholder="Fat (g)" keyboardType="numeric" value={mealForm.fats} onChangeText={(text) => setMealForm({...mealForm, fats: text})} />
               </View>
               <TouchableOpacity style={styles.saveButton} onPress={handleSaveMeal}><Text style={styles.saveButtonText}>{editingMealId ? 'Update Meal' : 'Save Meal'}</Text></TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={isQuickMealModalVisible} transparent={true} animationType="fade">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <Pressable style={styles.modalOverlay} onPress={() => setQuickMealModalVisible(false)}>
+            <Pressable style={styles.sheetContent}>
+              <Text style={styles.sheetTitle}>Setup Quick Meal</Text>
+              <TextInput style={styles.inputPremium} placeholderTextColor={theme.colors.textSecondary} placeholder="Meal Name" value={mealForm.name} onChangeText={(text) => setMealForm({...mealForm, name: text})} />
+              <TextInput style={styles.inputPremium} placeholderTextColor={theme.colors.textSecondary} placeholder="Calories" keyboardType="numeric" value={mealForm.calories} onChangeText={(text) => setMealForm({...mealForm, calories: text})} />
+              <View style={styles.inputRow}>
+                <TextInput style={styles.inputPremiumThird} placeholderTextColor={theme.colors.textSecondary} placeholder="Pro (g)" keyboardType="numeric" value={mealForm.protein} onChangeText={(text) => setMealForm({...mealForm, protein: text})} />
+                <TextInput style={styles.inputPremiumThird} placeholderTextColor={theme.colors.textSecondary} placeholder="Carb (g)" keyboardType="numeric" value={mealForm.carbs} onChangeText={(text) => setMealForm({...mealForm, carbs: text})} />
+                <TextInput style={styles.inputPremiumThird} placeholderTextColor={theme.colors.textSecondary} placeholder="Fat (g)" keyboardType="numeric" value={mealForm.fats} onChangeText={(text) => setMealForm({...mealForm, fats: text})} />
+              </View>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveCustomQuickMeal}><Text style={styles.saveButtonText}>Save Quick Meal</Text></TouchableOpacity>
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
@@ -504,45 +455,27 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: theme.colors.background }, container: { flex: 1 }, scrollContent: { padding: 16, paddingBottom: 40 },
-  datePickerRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', marginBottom: 20 },
-  navArrow: { padding: 8, justifyContent: 'center', alignItems: 'center' },
-  dateItem: { alignItems: 'center', paddingVertical: 10, paddingHorizontal: 24, borderRadius: 24 },
-  dateItemActive: { backgroundColor: theme.colors.surface },
+  datePickerRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', marginBottom: 20 }, navArrow: { padding: 8, justifyContent: 'center', alignItems: 'center' },
+  dateItem: { alignItems: 'center', paddingVertical: 10, paddingHorizontal: 24, borderRadius: 24 }, dateItemActive: { backgroundColor: theme.colors.surface },
   dateDayName: { color: theme.colors.textSecondary, fontSize: 12, marginBottom: 4 }, dateDayNumber: { color: theme.colors.textPrimary, fontSize: 16, fontWeight: '700' }, dateTextActive: { color: theme.colors.primary },
   card: { borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: theme.colors.border }, calorieCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, hugeNumber: { fontSize: 40, fontWeight: '800', color: theme.colors.textPrimary },
   macrosRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }, macroCard: { borderRadius: 16, padding: 14, alignItems: 'center', width: '31%', borderWidth: 1, borderColor: theme.colors.border }, macroLabel: { fontSize: 13, fontWeight: '600', color: theme.colors.textPrimary, marginBottom: 10 },
   ringTextSmall: { color: theme.colors.textPrimary, fontSize: 16, fontWeight: '700' }, ringTextMedium: { color: theme.colors.textPrimary, fontSize: 15, fontWeight: '700' }, ringTextTiny: { color: theme.colors.textSecondary, fontSize: 10 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary }, 
-  
-  // Standardized Black Add Buttons
   blackAddBtn: { backgroundColor: theme.colors.background, padding: 8, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, justifyContent: 'center', alignItems: 'center' },
   
-  // Embedded Text Water UI
+  // Water is now blue (#3b82f6)
   waterTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   waterBarContainerTall: { height: 28, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, overflow: 'hidden', justifyContent: 'center' },
-  waterBarFillTall: { height: '100%', backgroundColor: theme.colors.primary, borderRadius: 14, position: 'absolute', top: 0, left: 0 },
+  waterBarFillTall: { height: '100%', backgroundColor: '#3b82f6', borderRadius: 14, position: 'absolute', top: 0, left: 0 },
   waterBarTextWrapper: { position: 'absolute', width: '100%', alignItems: 'center' },
   waterBarInsideText: { fontSize: 13, fontWeight: '700', color: theme.colors.textPrimary, textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
   waterDetailsText: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 10, textAlign: 'center' },
 
-  // Meals section
   mealsHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 12, paddingLeft: 4, paddingRight: 16 }, 
-  quickMealsRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12, gap: 8 },
-  quickMealBtn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: theme.colors.primary },
-  quickMealText: { color: theme.colors.primary, fontSize: 13, fontWeight: '600' },
+  quickMealsRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12, gap: 8 }, quickMealBtn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: theme.colors.primary }, quickMealText: { color: theme.colors.primary, fontSize: 13, fontWeight: '600' },
   emptyMealsText: { color: theme.colors.textSecondary, textAlign: 'center', marginTop: 10, fontStyle: 'italic' }, 
   loggedMealItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surface, padding: 16, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.border }, loggedMealName: { color: theme.colors.textPrimary, fontSize: 15, fontWeight: '600' }, loggedMealTime: { color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }, loggedMealCals: { color: theme.colors.primary, fontSize: 16, fontWeight: '700' },
-  
-  habitItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surface, padding: 16, borderRadius: 16, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.border },
-  habitLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 }, habitText: { color: theme.colors.textPrimary, fontSize: 16, marginLeft: 12, fontWeight: '500' },
-  
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  sheetContent: { backgroundColor: theme.colors.surface, padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 40 },
-  modalHandle: { width: 40, height: 4, backgroundColor: theme.colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
-  sheetTitle: { color: theme.colors.textPrimary, fontSize: 18, fontWeight: '700', marginBottom: 20 },
-  inputPremium: { backgroundColor: theme.colors.surfaceHighlight, color: theme.colors.textPrimary, padding: 16, borderRadius: 16, marginBottom: 12, fontSize: 16 },
-  inputRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  inputPremiumThird: { backgroundColor: theme.colors.surfaceHighlight, color: theme.colors.textPrimary, padding: 16, borderRadius: 16, width: '31%', fontSize: 14, textAlign: 'center' },
-  saveButton: { backgroundColor: theme.colors.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 10 },
-  saveButtonText: { color: theme.colors.background, fontWeight: 'bold', fontSize: 16 },
+  habitItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surface, padding: 16, borderRadius: 16, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.border }, habitLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 }, habitText: { color: theme.colors.textPrimary, fontSize: 16, marginLeft: 12, fontWeight: '500' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }, sheetContent: { backgroundColor: theme.colors.surface, padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 40 }, modalHandle: { width: 40, height: 4, backgroundColor: theme.colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: 20 }, sheetTitle: { color: theme.colors.textPrimary, fontSize: 18, fontWeight: '700', marginBottom: 20 }, inputPremium: { backgroundColor: theme.colors.surfaceHighlight, color: theme.colors.textPrimary, padding: 16, borderRadius: 16, marginBottom: 12, fontSize: 16 }, inputRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }, inputPremiumThird: { backgroundColor: theme.colors.surfaceHighlight, color: theme.colors.textPrimary, padding: 16, borderRadius: 16, width: '31%', fontSize: 14, textAlign: 'center' }, saveButton: { backgroundColor: theme.colors.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 10 }, saveButtonText: { color: theme.colors.background, fontWeight: 'bold', fontSize: 16 },
 });
