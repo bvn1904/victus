@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal, Pressable, Image } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Modal, Pressable, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,9 +9,9 @@ import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import Toast from 'react-native-toast-message';
-import { User, Ruler, Weight, Activity, ChevronRight, Download } from 'lucide-react-native';
+import { User, Ruler, Weight, Activity, ChevronRight, Download, Edit2 } from 'lucide-react-native';
 import { theme } from '../theme';
-import { exportAllData } from '../database'; // Import the new DB function
+import { exportAllData } from '../database';
 
 const activityLevels = [
   { id: '1.2', label: 'Sedentary', desc: 'Little or no exercise' },
@@ -30,20 +30,29 @@ export default function ProfileScreen() {
   const [profilePic, setProfilePic] = useState(null);
   const [results, setResults] = useState({ bmr: 0, maintenance: 0, bulk: 0, cut: 0 });
   const [isModalVisible, setModalVisible] = useState(false);
+  const [isTargetModalVisible, setTargetModalVisible] = useState(false);
+  const [cutPercent, setCutPercent] = useState('10');
+  const [bulkPercent, setBulkPercent] = useState('10');
+  const [customMaintenance, setCustomMaintenance] = useState('');
 
   useEffect(() => { loadProfile(); }, []);
 
   const loadProfile = async () => {
     try {
       const savedProfile = await AsyncStorage.getItem('@profile_data');
+      const savedTargets = await AsyncStorage.getItem('@custom_targets');
       if (savedProfile) {
         const parsed = JSON.parse(savedProfile);
         setAge(parsed.age); setWeight(parsed.weight); setHeight(parsed.height); setGender(parsed.gender); setActivityMultiplier(parsed.activityMultiplier);
         if (parsed.profilePic) setProfilePic(parsed.profilePic);
-        calculateMacros(parsed);
-      } else {
-        calculateMacros({ age, weight, height, gender, activityMultiplier });
       }
+      if (savedTargets) {
+        const targets = JSON.parse(savedTargets);
+        if (targets.cutPercent) setCutPercent(targets.cutPercent);
+        if (targets.bulkPercent) setBulkPercent(targets.bulkPercent);
+        if (targets.customMaintenance) setCustomMaintenance(targets.customMaintenance);
+      }
+      calculateMacros(savedProfile ? JSON.parse(savedProfile) : { age, weight, height, gender, activityMultiplier }, savedTargets ? JSON.parse(savedTargets) : null);
     } catch (e) { console.error(e); }
   };
 
@@ -52,8 +61,21 @@ export default function ProfileScreen() {
     const picToSave = newPicUri !== null ? newPicUri : profilePic;
     const data = { age, weight, height, gender, activityMultiplier, profilePic: picToSave };
     await AsyncStorage.setItem('@profile_data', JSON.stringify(data));
-    calculateMacros(data);
+    const customTargets = await AsyncStorage.getItem('@custom_targets');
+    calculateMacros(data, customTargets ? JSON.parse(customTargets) : null);
     Toast.show({ type: 'success', text1: 'Stats Updated' });
+  };
+
+  const saveTargets = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const targets = { cutPercent, bulkPercent, customMaintenance };
+    await AsyncStorage.setItem('@custom_targets', JSON.stringify(targets));
+    const savedProfile = await AsyncStorage.getItem('@profile_data');
+    if (savedProfile) {
+      calculateMacros(JSON.parse(savedProfile), targets);
+    }
+    setTargetModalVisible(false);
+    Toast.show({ type: 'success', text1: 'Targets Updated' });
   };
 
   const pickImage = async () => {
@@ -71,17 +93,31 @@ export default function ProfileScreen() {
     }
   };
 
-  const calculateMacros = (data) => {
+  const calculateMacros = (data, customTargets = null) => {
     const w = parseFloat(data.weight); const h = parseFloat(data.height); const a = parseInt(data.age); const mult = parseFloat(data.activityMultiplier);
     if (!w || !h || !a) return;
     let bmr = data.gender === 'male' ? (10 * w) + (6.25 * h) - (5 * a) + 5 : (10 * w) + (6.25 * h) - (5 * a) - 161;
-    const maintenance = bmr * mult;
-    setResults({ bmr: Math.round(bmr), maintenance: Math.round(maintenance), cut: Math.round(maintenance * 0.90), bulk: Math.round(maintenance * 1.10) });
+    let maintenance = bmr * mult;
+    
+    // Use custom maintenance if set
+    if (customTargets?.customMaintenance && parseFloat(customTargets.customMaintenance) > 0) {
+      maintenance = parseFloat(customTargets.customMaintenance);
+    }
+    
+    const cutPct = customTargets?.cutPercent ? parseFloat(customTargets.cutPercent) : 10;
+    const bulkPct = customTargets?.bulkPercent ? parseFloat(customTargets.bulkPercent) : 10;
+    
+    setResults({ 
+      bmr: Math.round(bmr), 
+      maintenance: Math.round(maintenance), 
+      cut: Math.round(maintenance * (1 - cutPct / 100)), 
+      bulk: Math.round(maintenance * (1 + bulkPct / 100)) 
+    });
   };
 
   const currentActivityLabel = activityLevels.find(l => l.id === activityMultiplier)?.label || 'Select';
 
-  // --- EXPORT LOGIC ---
+  // CSV Export
   const handleExportData = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -92,26 +128,26 @@ export default function ProfileScreen() {
         return;
       }
 
-      // Convert the database objects into a beautifully formatted JSON string
-      const jsonString = JSON.stringify(data, null, 2);
+      // Build CSV content
+      let csvContent = 'Date,Time,Meal Name,Calories,Protein,Carbs,Fats\n';
+      if (data.meals?.length) {
+        data.meals.forEach(meal => {
+          csvContent += `${meal.date},${meal.time},"${meal.name}",${meal.calories},${meal.protein},${meal.carbs},${meal.fats}\n`;
+        });
+      }
       
-      // Create a temporary file path on the device
-      const fileUri = `${FileSystem.documentDirectory}victus_backup.json`;
+      const fileUri = `${FileSystem.documentDirectory}victus_export.csv`;
+      await FileSystem.writeAsStringAsync(fileUri, csvContent, { encoding: FileSystem.EncodingType.UTF8 });
 
-      // Write the data to the file
-      await FileSystem.writeAsStringAsync(fileUri, jsonString, { encoding: FileSystem.EncodingType.UTF8 });
-
-      // Open the native share menu
       const isAvailable = await Sharing.isAvailableAsync();
       if (isAvailable) {
         await Sharing.shareAsync(fileUri, {
-          mimeType: 'application/json',
+          mimeType: 'text/csv',
           dialogTitle: 'Export Victus Data',
-          UTI: 'public.json'
         });
         Toast.show({ type: 'success', text1: 'Data Exported' });
       } else {
-        Toast.show({ type: 'error', text1: 'Sharing not available on this device' });
+        Toast.show({ type: 'error', text1: 'Sharing not available' });
       }
     } catch (error) {
       console.error(error);
@@ -121,17 +157,22 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.container}>
         
         <View style={styles.headerRow}>
           <Text style={theme.typography.header}>My Profile</Text>
-          <TouchableOpacity style={styles.avatarCircleSmall} onPress={pickImage}>
-            {profilePic ? (
-              <Image source={{ uri: profilePic }} style={styles.avatarImage} />
-            ) : (
-              <User color={theme.colors.background} size={28} />
-            )}
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity style={styles.exportIconBtn} onPress={handleExportData}>
+              <Download color={theme.colors.textSecondary} size={22} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.avatarCircleSmall} onPress={pickImage}>
+              {profilePic ? (
+                <Image source={{ uri: profilePic }} style={styles.avatarImage} />
+              ) : (
+                <User color={theme.colors.background} size={28} />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={styles.card}>
@@ -184,21 +225,20 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </LinearGradient>
 
-        <LinearGradient colors={[theme.colors.surfaceHighlight, theme.colors.surface]} style={styles.card}>
-          <Text style={theme.typography.subheader}>Daily Targets</Text>
+        <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={styles.card}>
+          <View style={styles.targetHeaderRow}>
+            <Text style={theme.typography.subheader}>Daily Targets</Text>
+            <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setTargetModalVisible(true); }}>
+              <Edit2 color={theme.colors.textSecondary} size={18} />
+            </TouchableOpacity>
+          </View>
           <View style={styles.targetRow}><Text style={styles.targetLabel}>BMR</Text><Text style={styles.targetValue}>{results.bmr} kcal</Text></View>
           <View style={styles.targetRow}><Text style={styles.targetLabel}>Maintenance</Text><Text style={styles.targetValue}>{results.maintenance} kcal</Text></View>
-          <View style={styles.targetRow}><Text style={styles.targetLabel}>Loss (-10%)</Text><Text style={styles.targetValue}>{results.cut} kcal</Text></View>
-          <View style={styles.targetRow}><Text style={styles.targetLabel}>Gain (+10%)</Text><Text style={styles.targetValue}>{results.bulk} kcal</Text></View>
+          <View style={styles.targetRow}><Text style={styles.targetLabel}>Loss (-{cutPercent}%)</Text><Text style={styles.targetValue}>{results.cut} kcal</Text></View>
+          <View style={styles.targetRow}><Text style={styles.targetLabel}>Gain (+{bulkPercent}%)</Text><Text style={styles.targetValue}>{results.bulk} kcal</Text></View>
         </LinearGradient>
 
-        {/* Database Export Button */}
-        <TouchableOpacity style={styles.exportButton} onPress={handleExportData}>
-          <Download color={theme.colors.textSecondary} size={20} style={{ marginRight: 8 }} />
-          <Text style={styles.exportButtonText}>Export Data (JSON)</Text>
-        </TouchableOpacity>
-
-      </ScrollView>
+      </View>
 
       <Modal visible={isModalVisible} transparent={true} animationType="fade">
         <View style={{flex: 1}}>
@@ -224,15 +264,53 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
       </Modal>
+
+      <Modal visible={isTargetModalVisible} transparent={true} animationType="fade">
+        <View style={{flex: 1}}>
+          <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill} />
+          <Pressable style={styles.modalOverlay} onPress={() => setTargetModalVisible(false)}>
+            <Pressable style={styles.sheetContentWhite}>
+              <View style={styles.modalHandle} />
+              <Text style={[theme.typography.subheader, { marginBottom: 16 }]}>Edit Targets</Text>
+              
+              <Text style={theme.typography.body}>Custom Maintenance (optional)</Text>
+              <TextInput 
+                style={styles.inputPremium} 
+                value={customMaintenance} 
+                onChangeText={setCustomMaintenance} 
+                keyboardType="numeric" 
+                placeholder="Leave blank to use calculated"
+                placeholderTextColor={theme.colors.textSecondary}
+              />
+              
+              <View style={styles.row}>
+                <View style={styles.inputGroup}>
+                  <Text style={theme.typography.body}>Cut %</Text>
+                  <TextInput style={styles.inputPremium} value={cutPercent} onChangeText={setCutPercent} keyboardType="numeric" />
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={theme.typography.body}>Bulk %</Text>
+                  <TextInput style={styles.inputPremium} value={bulkPercent} onChangeText={setBulkPercent} keyboardType="numeric" />
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.button} onPress={saveTargets}>
+                <Text style={styles.buttonText}>Save Targets</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: theme.colors.background },
-  scrollContent: { padding: 16, paddingBottom: 100 },
+  container: { flex: 1, padding: 16 },
   
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 16 },
+  exportIconBtn: { marginRight: 16, padding: 8 },
   avatarCircleSmall: { width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   avatarImage: { width: 56, height: 56, borderRadius: 28 },
   
@@ -252,16 +330,14 @@ const styles = StyleSheet.create({
   button: { backgroundColor: theme.colors.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 20 },
   buttonText: { color: theme.colors.background, fontWeight: 'bold', fontSize: 16 },
   
-  // Export Button Styles
-  exportButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 20 },
-  exportButtonText: { color: theme.colors.textSecondary, fontWeight: '600', fontSize: 16 },
-
+  targetHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   targetRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.background },
   targetLabel: { color: theme.colors.textSecondary, fontSize: 14 },
   targetValue: { color: theme.colors.textPrimary, fontWeight: '700', fontSize: 16 },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   sheetContent: { backgroundColor: theme.colors.surfaceHighlight, padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 40 },
+  sheetContentWhite: { backgroundColor: theme.colors.surface, padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 40 },
   modalHandle: { width: 40, height: 4, backgroundColor: theme.colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   sheetItem: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   sheetItemActive: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, paddingHorizontal: 12, borderBottomWidth: 0 },

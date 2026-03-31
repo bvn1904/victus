@@ -65,13 +65,13 @@ export default function HomeScreen() {
     return d.toISOString().split('T')[0]; 
   };
 
-  const [topMeal, setTopMeal] = useState(null);
+  const [topMeals, setTopMeals] = useState([]);
 
   useFocusEffect(
     useCallback(() => {
       loadProfileTargets();
       loadWaterConfig();
-      loadTopMeal();
+      loadTopMeals();
       // Ensure data refreshes when screen is focused (fixes "reopen needed" bug)
       loadDailyMeals();
       loadDailyHabits();
@@ -83,22 +83,22 @@ export default function HomeScreen() {
     loadDailyMeals();
     loadDailyHabits();
     loadDailyWater();
-    loadTopMeal();
+    loadTopMeals();
   }, [selectedDateOffset]);
 
-  const loadTopMeal = () => {
-    const top = getTopMeals();
-    if (top && top.length > 0) setTopMeal(top[0]);
+  const loadTopMeals = () => {
+    const top = getTopMeals(3);
+    setTopMeals(top || []);
   };
 
-  const handleQuickAddMeal = () => {
-    if (!topMeal) return;
+  const handleQuickAddMeal = (meal) => {
+    if (!meal) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const dateStr = getActiveDateString();
     
-    addMealToDB(topMeal.name, topMeal.calories, topMeal.protein, topMeal.carbs, topMeal.fats, dateStr, timeStr);
-    Toast.show({ type: 'success', text1: 'Meal Logged', text2: `Added ${topMeal.name}` });
+    addMealToDB(meal.name, meal.calories, meal.protein, meal.carbs, meal.fats, dateStr, timeStr);
+    Toast.show({ type: 'success', text1: 'Meal Logged', text2: `Added ${meal.name}` });
     loadDailyMeals();
   };
 
@@ -200,7 +200,7 @@ export default function HomeScreen() {
   };
 
   const loadDailyHabits = () => {
-    setHabits(getHabits());
+    setHabits(getHabits(getActiveDateString()));
     setCompletedHabits(getCompletedHabitsByDate(getActiveDateString()));
   };
 
@@ -295,6 +295,11 @@ export default function HomeScreen() {
               onPress={() => { 
                 Haptics.selectionAsync(); 
                 setSelectedDateOffset(item.offset); 
+              }}
+              onLongPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setBaseDateOffset(0);
+                setSelectedDateOffset(0);
               }}
             >
               <Text style={[styles.dateDayName, selectedDateOffset === item.offset && styles.dateTextActive]}>{item.dayName}</Text>
@@ -408,18 +413,25 @@ export default function HomeScreen() {
         })}
 
         <View style={[styles.mealsHeaderRow, {marginTop: 20}]}>
-          <View style={{flexDirection: 'row', alignItems: 'center'}}>
-            <Text style={styles.sectionTitle}>Meals</Text>
-            {topMeal && (
-              <TouchableOpacity style={styles.quickAddBtn} onPress={handleQuickAddMeal}>
-                <Text style={styles.quickAddText}>+ {topMeal.name}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          <Text style={styles.sectionTitle}>Meals</Text>
           <TouchableOpacity style={styles.blackAddBtn} onPress={() => handleOpenModal(null)}>
             <Plus color={theme.colors.primary} size={18} />
           </TouchableOpacity>
         </View>
+
+        {topMeals.length > 0 && (
+          <View style={styles.quickMealsRow}>
+            {topMeals.map((meal, index) => (
+              <TouchableOpacity 
+                key={index} 
+                style={styles.quickMealBtn} 
+                onPress={() => handleQuickAddMeal(meal)}
+              >
+                <Text style={styles.quickMealText}>+ {meal.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {meals.length === 0 ? (
           <Text style={styles.emptyMealsText}>No meals logged today. Tap + to add.</Text>
@@ -491,10 +503,11 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background }, container: { flex: 1 }, scrollContent: { padding: 16, paddingBottom: 100 },
-  datePickerRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20 },
+  safeArea: { flex: 1, backgroundColor: theme.colors.background }, container: { flex: 1 }, scrollContent: { padding: 16, paddingBottom: 40 },
+  datePickerRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', marginBottom: 20 },
+  navArrow: { padding: 8, justifyContent: 'center', alignItems: 'center' },
   dateItem: { alignItems: 'center', paddingVertical: 10, paddingHorizontal: 24, borderRadius: 24 },
-  dateItemActive: { backgroundColor: theme.colors.surfaceHighlight },
+  dateItemActive: { backgroundColor: theme.colors.surface },
   dateDayName: { color: theme.colors.textSecondary, fontSize: 12, marginBottom: 4 }, dateDayNumber: { color: theme.colors.textPrimary, fontSize: 16, fontWeight: '700' }, dateTextActive: { color: theme.colors.primary },
   card: { borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: theme.colors.border }, calorieCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, hugeNumber: { fontSize: 40, fontWeight: '800', color: theme.colors.textPrimary },
   macrosRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }, macroCard: { borderRadius: 16, padding: 14, alignItems: 'center', width: '31%', borderWidth: 1, borderColor: theme.colors.border }, macroLabel: { fontSize: 13, fontWeight: '600', color: theme.colors.textPrimary, marginBottom: 10 },
@@ -507,13 +520,16 @@ const styles = StyleSheet.create({
   // Embedded Text Water UI
   waterTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   waterBarContainerTall: { height: 28, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, overflow: 'hidden', justifyContent: 'center' },
-  waterBarFillTall: { height: '100%', backgroundColor: theme.colors.water, borderRadius: 14, position: 'absolute', top: 0, left: 0 },
+  waterBarFillTall: { height: '100%', backgroundColor: theme.colors.primary, borderRadius: 14, position: 'absolute', top: 0, left: 0 },
   waterBarTextWrapper: { position: 'absolute', width: '100%', alignItems: 'center' },
   waterBarInsideText: { fontSize: 13, fontWeight: '700', color: theme.colors.textPrimary, textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
   waterDetailsText: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 10, textAlign: 'center' },
 
-  // Alignment Fix: paddingRight 16 perfectly aligns with the inner padding of the Water card above it
+  // Meals section
   mealsHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 12, paddingLeft: 4, paddingRight: 16 }, 
+  quickMealsRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12, gap: 8 },
+  quickMealBtn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: theme.colors.primary },
+  quickMealText: { color: theme.colors.primary, fontSize: 13, fontWeight: '600' },
   emptyMealsText: { color: theme.colors.textSecondary, textAlign: 'center', marginTop: 10, fontStyle: 'italic' }, 
   loggedMealItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: theme.colors.surface, padding: 16, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.border }, loggedMealName: { color: theme.colors.textPrimary, fontSize: 15, fontWeight: '600' }, loggedMealTime: { color: theme.colors.textSecondary, fontSize: 12, marginTop: 4 }, loggedMealCals: { color: theme.colors.primary, fontSize: 16, fontWeight: '700' },
   

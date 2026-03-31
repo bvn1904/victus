@@ -81,15 +81,15 @@ export const deleteMealFromDB = (id) => {
   }
 };
 
-export const getTopMeals = () => {
+export const getTopMeals = (limit = 3) => {
   try {
     return db.getAllSync(`
       SELECT name, calories, protein, carbs, fats, COUNT(*) as frequency 
       FROM meals 
       GROUP BY name 
       ORDER BY frequency DESC 
-      LIMIT 1
-    `);
+      LIMIT ?
+    `, [limit]);
   } catch (error) {
     console.error("Error fetching top meals:", error);
     return [];

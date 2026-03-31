@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,30 +50,39 @@ export default function AnalysisScreen() {
     });
   };
 
+  const avgLinePosition = maxCalories > 0 ? Math.min((averages.calories / maxCalories) * 100, 100) : 0;
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.container}>
         
-        {/* Title Alignment Fix */}
         <View style={styles.headerContainerRow}>
           <Text style={theme.typography.header}>Weekly Insights</Text>
           <Text style={styles.headerSubtitleRight}>Last 7 Days</Text>
         </View>
 
-        <LinearGradient colors={[theme.colors.surfaceHighlight, theme.colors.surface]} style={styles.card}>
+        <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={styles.card}>
           <View style={styles.chartHeader}>
             <Flame color={theme.colors.primary} size={20} />
             <Text style={styles.chartTitle}>Calorie Intake</Text>
           </View>
           
           <View style={styles.chartContainer}>
+            {/* Average line */}
+            {averages.calories > 0 && (
+              <View style={[styles.avgLine, { bottom: `${avgLinePosition}%` }]}>
+                <View style={styles.avgLineBar} />
+                <Text style={styles.avgLineText}>avg {averages.calories}</Text>
+              </View>
+            )}
+            
             {weeklyData.map((day) => {
               const fillPercentage = Math.min((day.calories / maxCalories) * 100, 100);
               return (
                 <View key={day.id} style={styles.barColumn}>
                   <Text style={styles.barValueText}>{day.calories > 0 ? day.calories : ''}</Text>
                   <View style={styles.barTrack}>
-                    <LinearGradient colors={[theme.colors.primary, theme.colors.surfaceHighlight]} style={[styles.barFill, { height: `${fillPercentage}%` }]} />
+                    <LinearGradient colors={[theme.colors.primary, theme.colors.surface]} style={[styles.barFill, { height: `${fillPercentage}%` }]} />
                   </View>
                   <Text style={styles.barLabel}>{day.dayName}</Text>
                 </View>
@@ -91,23 +100,36 @@ export default function AnalysisScreen() {
           <View style={styles.avgCard}><Text style={[styles.avgValue, { color: theme.colors.fats }]}>{averages.fats}g</Text><Text style={styles.avgLabel}>Fats</Text></View>
         </View>
 
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: theme.colors.background }, container: { flex: 1 }, scrollContent: { padding: 16, paddingBottom: 100 },
+  safeArea: { flex: 1, backgroundColor: theme.colors.background }, 
+  container: { flex: 1, padding: 16 },
   
-  // Alignment Fixes
   headerContainerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24, marginTop: 10 },
   headerSubtitleRight: { color: theme.colors.textSecondary, fontSize: 14, fontWeight: '500', marginBottom: 4 },
   
   card: { borderRadius: 20, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: theme.colors.border },
-  chartHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 }, chartTitle: { color: theme.colors.textPrimary, fontSize: 18, fontWeight: '700', marginLeft: 8 },
-  chartContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 180, paddingTop: 20 },
-  barColumn: { alignItems: 'center', width: 36 }, barTrack: { width: 14, height: 120, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, justifyContent: 'flex-end', overflow: 'hidden', marginVertical: 8 }, barFill: { width: '100%', borderRadius: 8 },
-  barLabel: { color: theme.colors.textSecondary, fontSize: 12, fontWeight: '500' }, barValueText: { color: theme.colors.textPrimary, fontSize: 10, fontWeight: '600', height: 14 },
+  chartHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 }, 
+  chartTitle: { color: theme.colors.textPrimary, fontSize: 18, fontWeight: '700', marginLeft: 8 },
+  chartContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 160, paddingTop: 20, position: 'relative' },
+  barColumn: { alignItems: 'center', width: 36 }, 
+  barTrack: { width: 14, height: 100, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, justifyContent: 'flex-end', overflow: 'hidden', marginVertical: 8 }, 
+  barFill: { width: '100%', borderRadius: 8 },
+  barLabel: { color: theme.colors.textSecondary, fontSize: 12, fontWeight: '500' }, 
+  barValueText: { color: theme.colors.textPrimary, fontSize: 10, fontWeight: '600', height: 14 },
+  
+  // Average line styles
+  avgLine: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', zIndex: 10 },
+  avgLineBar: { flex: 1, height: 1, backgroundColor: theme.colors.primary, opacity: 0.5 },
+  avgLineText: { color: theme.colors.primary, fontSize: 9, fontWeight: '600', marginLeft: 4, opacity: 0.8 },
+  
   sectionTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 16 },
-  averagesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }, avgCard: { width: '48%', backgroundColor: theme.colors.surfaceHighlight, padding: 20, borderRadius: 16, marginBottom: 16, alignItems: 'center' }, avgValue: { fontSize: 28, fontWeight: '800', color: theme.colors.textPrimary, marginBottom: 4 }, avgLabel: { fontSize: 14, color: theme.colors.textSecondary, fontWeight: '500' }
+  averagesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }, 
+  avgCard: { width: '48%', backgroundColor: theme.colors.surface, padding: 20, borderRadius: 16, marginBottom: 16, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border }, 
+  avgValue: { fontSize: 28, fontWeight: '800', color: theme.colors.textPrimary, marginBottom: 4 }, 
+  avgLabel: { fontSize: 14, color: theme.colors.textSecondary, fontWeight: '500' }
 });
